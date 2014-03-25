@@ -95,7 +95,7 @@ typedef enum {
 } SDL_Scancode;
 
 // Subset of SDL keysym
-typedef enum {
+enum {
   SDLK_RETURN = '\r',
   SDLK_ESCAPE = '\033',
   SDLK_BACKSPACE = '\b',
