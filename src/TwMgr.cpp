@@ -46,7 +46,7 @@ float g_FontScaling = 1.0f;
 // multi-windows
 const int TW_MASTER_WINDOW_ID = 0;
 typedef map<int, CTwMgr *> CTwWndMap;
-CTwWndMap g_Wnds;
+CTwWndMap* g_WndsPtr = NULL;
 CTwMgr *g_TwMasterMgr = NULL;
 
 // error messages
@@ -1904,16 +1904,17 @@ int ANT_CALL TwInit(ETwGraphAPI _GraphAPI, void *_Device)
     _CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF|_CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF));
 #endif
 
-    if( g_TwMasterMgr!=NULL )
+    if( g_TwMasterMgr!=NULL || g_WndsPtr!=NULL )
     {
         g_TwMasterMgr->SetLastError(g_ErrInit);
         return 0;
     }
     assert( g_TwMgr==0 );
-    assert( g_Wnds.empty() );
+    g_WndsPtr = new CTwWndMap;
+    assert( g_WndsPtr->empty() );
 
     g_TwMasterMgr = new CTwMgr(_GraphAPI, _Device, TW_MASTER_WINDOW_ID);
-    g_Wnds[TW_MASTER_WINDOW_ID] = g_TwMasterMgr;
+    (*g_WndsPtr)[TW_MASTER_WINDOW_ID] = g_TwMasterMgr;
     g_TwMgr = g_TwMasterMgr;
 
     TwGenerateDefaultFonts(g_FontScaling);
@@ -1957,7 +1958,7 @@ int ANT_CALL TwTerminate()
         return 0;
 
     CTwWndMap::iterator it;
-    for( it=g_Wnds.begin(); it!=g_Wnds.end(); it++ )
+    for( it=g_WndsPtr->begin(); it!=g_WndsPtr->end(); it++ )
     {
         g_TwMgr = it->second;
 
@@ -2002,7 +2003,9 @@ int ANT_CALL TwTerminate()
     delete g_TwMasterMgr;
     g_TwMasterMgr = NULL;
     g_TwMgr = NULL;
-    g_Wnds.clear();
+    g_WndsPtr->clear();
+    delete g_WndsPtr;
+    g_WndsPtr = NULL;
 
     return Res;
 }
@@ -2030,12 +2033,12 @@ int ANT_CALL TwSetCurrentWindow(int wndID)
 
     if (wndID != g_TwMgr->m_WndID)
     { 
-        CTwWndMap::iterator foundWnd = g_Wnds.find(wndID);
-        if (foundWnd == g_Wnds.end())
+        CTwWndMap::iterator foundWnd = g_WndsPtr->find(wndID);
+        if (foundWnd == g_WndsPtr->end())
         {
             // create a new CTwMgr
             g_TwMgr = new CTwMgr(g_TwMasterMgr->m_GraphAPI, g_TwMasterMgr->m_Device, wndID);
-            g_Wnds[wndID] = g_TwMgr;
+            (*g_WndsPtr)[wndID] = g_TwMgr;
             return TwInitMgr();
         }
         else 
@@ -2050,8 +2053,8 @@ int ANT_CALL TwSetCurrentWindow(int wndID)
 
 int ANT_CALL TwWindowExists(int wndID)
 {
-    CTwWndMap::iterator foundWnd = g_Wnds.find(wndID);
-    if (foundWnd == g_Wnds.end())
+    CTwWndMap::iterator foundWnd = g_WndsPtr->find(wndID);
+    if (foundWnd == g_WndsPtr->end())
         return 0;
     else
         return 1;
