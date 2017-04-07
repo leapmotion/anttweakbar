@@ -4,8 +4,8 @@ SO_EXT		= .dylib
 AR_EXT		= .a
 
 #---- Release
-CXXCFG   	= -O3
-LFLAGS		= 
+CXXCFG   	= -O3 -arch x86_64 -stdlib=libc++ -mmacosx-version-min=10.10
+LFLAGS		= $(CXXCFG)
 OUT_DIR		= ../lib
 #---- Debug
 #CXXCFG   	= -g -D_DEBUG
@@ -13,13 +13,14 @@ OUT_DIR		= ../lib
 #OUT_DIR	= ../lib/debug
 
 #BASE		= /Developer/SDKs/MacOSX10.5.sdk/System/Library/Frameworks
-CXX      	= g++
-CXXFLAGS 	= $(CXXCFG) -Wall -fPIC -fno-strict-aliasing -D_MACOSX -ObjC++  -D__PLACEMENT_NEW_INLINE
+CC      	= clang
+CXX      	= clang++
+CXXFLAGS 	= $(CXXCFG) -Wall -fPIC -fno-strict-aliasing -D_MACOSX -ObjC++ -fobjc-arc -D__PLACEMENT_NEW_INLINE
 INCPATH  	= -I../include -I/usr/local/include -I/usr/X11R6/include -I/usr/include
 #-I$(BASE)/OpenGL.framework/Headers/ -I$(BASE)/GLUT.framework/Headers/ -I$(BASE)/AppKit.framework/Headers/
-LINK     	= g++
+LINK     	= clang++
 LIBS 		= -framework OpenGL -framework GLUT -framework AppKit
-AR       	= ar cqs
+AR       	= libtool -static -o
 RANLIB   	=
 TAR      	= tar -cf
 GZIP     	= gzip -9f
@@ -63,7 +64,6 @@ all: 	Makefile $(TARGET)
 
 $(TARGET): $(OBJS)
 	@echo "===== Link $@ ====="
-	$(LINK) $(LFLAGS) -dynamiclib -Wl,-undefined -Wl,dynamic_lookup  -o $(OUT_DIR)/lib$(TARGET)$(SO_EXT) $(OBJS) $(LIBS)
 	$(AR) $(OUT_DIR)/lib$(TARGET)$(AR_EXT) $(OBJS)
 
 .cpp.o:
@@ -72,7 +72,7 @@ $(TARGET): $(OBJS)
 
 .c.o:
 	@echo "===== Compile $< ====="
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
+	$(CC) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
 
 clean:
 	@echo "===== Clean ====="

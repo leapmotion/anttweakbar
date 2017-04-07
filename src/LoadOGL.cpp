@@ -506,7 +506,6 @@ namespace GL { PFNGLGetProcAddress _glGetProcAddress = NULL; }
         {
             NSString *sym = [[NSString alloc] initWithFormat: @"%s%s",gl_prefix,name];
             proc = dlsym(gl_dyld,[sym UTF8String]);
-            [sym release];
         }
         return proc;
     }

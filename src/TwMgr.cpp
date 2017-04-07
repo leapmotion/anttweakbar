@@ -46,7 +46,7 @@ float g_FontScaling = 1.0f;
 // multi-windows
 const int TW_MASTER_WINDOW_ID = 0;
 typedef map<int, CTwMgr *> CTwWndMap;
-CTwWndMap g_Wnds;
+CTwWndMap* g_WndsPtr = NULL;
 CTwMgr *g_TwMasterMgr = NULL;
 
 // error messages
@@ -1904,16 +1904,17 @@ int ANT_CALL TwInit(ETwGraphAPI _GraphAPI, void *_Device)
     _CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF|_CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF));
 #endif
 
-    if( g_TwMasterMgr!=NULL )
+    if( g_TwMasterMgr!=NULL || g_WndsPtr!=NULL )
     {
         g_TwMasterMgr->SetLastError(g_ErrInit);
         return 0;
     }
     assert( g_TwMgr==0 );
-    assert( g_Wnds.empty() );
+    g_WndsPtr = new CTwWndMap;
+    assert( g_WndsPtr->empty() );
 
     g_TwMasterMgr = new CTwMgr(_GraphAPI, _Device, TW_MASTER_WINDOW_ID);
-    g_Wnds[TW_MASTER_WINDOW_ID] = g_TwMasterMgr;
+    (*g_WndsPtr)[TW_MASTER_WINDOW_ID] = g_TwMasterMgr;
     g_TwMgr = g_TwMasterMgr;
 
     TwGenerateDefaultFonts(g_FontScaling);
@@ -1957,7 +1958,7 @@ int ANT_CALL TwTerminate()
         return 0;
 
     CTwWndMap::iterator it;
-    for( it=g_Wnds.begin(); it!=g_Wnds.end(); it++ )
+    for( it=g_WndsPtr->begin(); it!=g_WndsPtr->end(); it++ )
     {
         g_TwMgr = it->second;
 
@@ -2002,7 +2003,9 @@ int ANT_CALL TwTerminate()
     delete g_TwMasterMgr;
     g_TwMasterMgr = NULL;
     g_TwMgr = NULL;
-    g_Wnds.clear();
+    g_WndsPtr->clear();
+    delete g_WndsPtr;
+    g_WndsPtr = NULL;
 
     return Res;
 }
@@ -2030,12 +2033,12 @@ int ANT_CALL TwSetCurrentWindow(int wndID)
 
     if (wndID != g_TwMgr->m_WndID)
     { 
-        CTwWndMap::iterator foundWnd = g_Wnds.find(wndID);
-        if (foundWnd == g_Wnds.end())
+        CTwWndMap::iterator foundWnd = g_WndsPtr->find(wndID);
+        if (foundWnd == g_WndsPtr->end())
         {
             // create a new CTwMgr
             g_TwMgr = new CTwMgr(g_TwMasterMgr->m_GraphAPI, g_TwMasterMgr->m_Device, wndID);
-            g_Wnds[wndID] = g_TwMgr;
+            (*g_WndsPtr)[wndID] = g_TwMgr;
             return TwInitMgr();
         }
         else 
@@ -2050,8 +2053,8 @@ int ANT_CALL TwSetCurrentWindow(int wndID)
 
 int ANT_CALL TwWindowExists(int wndID)
 {
-    CTwWndMap::iterator foundWnd = g_Wnds.find(wndID);
-    if (foundWnd == g_Wnds.end())
+    CTwWndMap::iterator foundWnd = g_WndsPtr->find(wndID);
+    if (foundWnd == g_WndsPtr->end())
         return 0;
     else
         return 1;
@@ -5109,7 +5112,7 @@ bool TwGetKeyCode(int *_Code, int *_Modif, const char *_String)
     bool Ok = true;
     *_Modif = TW_KMOD_NONE;
     *_Code = 0;
-    size_t Start = strlen(_String)-1;
+    int Start = (int)strlen(_String)-1;
     if( Start<0 )
         return false;
     while( Start>0 && _String[Start-1]!='+' )
@@ -5117,7 +5120,7 @@ bool TwGetKeyCode(int *_Code, int *_Modif, const char *_String)
     while( _String[Start]==' ' || _String[Start]=='\t' )
         ++Start;
     char *CodeStr = _strdup(_String+Start);
-    for( size_t i=strlen(CodeStr)-1; i>=0; ++i )
+    for( int i=(int)strlen(CodeStr)-1; i>=0; --i )
         if( CodeStr[i]==' ' || CodeStr[i]=='\t' )
             CodeStr[i] = '\0';
         else
@@ -6366,7 +6369,7 @@ CTwMgr::CCursor CTwMgr::PixmapCursor(int _CurIdx)
     for (y=0;y<32;y++) {
         for (x=0;x<32;x++) {
             //printf("%d",g_CurMask[_CurIdx][x+y*32]);
-            data[(x>>2) + y*8] |= (unsigned char)(g_CurPict[_CurIdx][x+y*32] << 2*(3-(x&3))+1); //turn whiteon
+            data[(x>>2) + y*8] |= (unsigned char)(g_CurPict[_CurIdx][x+y*32] << (2*(3-(x&3))+1)); //turn whiteon
             data[(x>>2) + y*8] |= (unsigned char)(g_CurMask[_CurIdx][x+y*32] << 2*(3-(x&3))); //turn the alpha all the way up
         }
         //printf("\n");
@@ -6375,8 +6378,6 @@ CTwMgr::CCursor CTwMgr::PixmapCursor(int _CurIdx)
     [img addRepresentation: imgr];
     NSCursor *cur = [[NSCursor alloc] initWithImage: img hotSpot: NSMakePoint(g_CurHot[_CurIdx][0],g_CurHot[_CurIdx][1])];
 
-    [imgr autorelease];
-    [img autorelease];
     if (cur)
         return cur;
     else
@@ -6388,49 +6389,31 @@ void CTwMgr::CreateCursors()
     if (m_CursorsCreated)
         return;
     
-    m_CursorArrow        = [[NSCursor arrowCursor] retain];
-    m_CursorMove         = [[NSCursor crosshairCursor] retain];
-    m_CursorWE           = [[NSCursor resizeLeftRightCursor] retain];
-    m_CursorNS           = [[NSCursor resizeUpDownCursor] retain];
-    m_CursorTopRight     = [[NSCursor arrowCursor] retain]; //osx not have one
-    m_CursorTopLeft      = [[NSCursor arrowCursor] retain]; //osx not have one
-    m_CursorBottomRight  = [[NSCursor arrowCursor] retain]; //osx not have one
-    m_CursorBottomLeft   = [[NSCursor arrowCursor] retain]; //osx not have one
-    m_CursorHelp         = [[NSCursor arrowCursor] retain]; //osx not have one
-    m_CursorHand         = [[NSCursor pointingHandCursor] retain];
-    m_CursorCross        = [[NSCursor arrowCursor] retain];
-    m_CursorUpArrow      = [[NSCursor arrowCursor] retain];
-    m_CursorNo           = [[NSCursor arrowCursor] retain];
-    m_CursorIBeam        = [[NSCursor IBeamCursor] retain];
+    m_CursorArrow        = [NSCursor arrowCursor];
+    m_CursorMove         = [NSCursor crosshairCursor];
+    m_CursorWE           = [NSCursor resizeLeftRightCursor];
+    m_CursorNS           = [NSCursor resizeUpDownCursor];
+    m_CursorTopRight     = [NSCursor arrowCursor]; //osx not have one
+    m_CursorTopLeft      = [NSCursor arrowCursor]; //osx not have one
+    m_CursorBottomRight  = [NSCursor arrowCursor]; //osx not have one
+    m_CursorBottomLeft   = [NSCursor arrowCursor]; //osx not have one
+    m_CursorHelp         = [NSCursor arrowCursor]; //osx not have one
+    m_CursorHand         = [NSCursor pointingHandCursor];
+    m_CursorCross        = [NSCursor arrowCursor];
+    m_CursorUpArrow      = [NSCursor arrowCursor];
+    m_CursorNo           = [NSCursor arrowCursor];
+    m_CursorIBeam        = [NSCursor IBeamCursor];
     for (int i=0;i<NB_ROTO_CURSORS; i++)
     {
-        m_RotoCursors[i] = [PixmapCursor(i+2) retain];
+        m_RotoCursors[i] = PixmapCursor(i+2);
     }
-    m_CursorCenter  = [PixmapCursor(0) retain];
-    m_CursorPoint   = [PixmapCursor(1) retain];
+    m_CursorCenter  = PixmapCursor(0);
+    m_CursorPoint   = PixmapCursor(1);
     m_CursorsCreated = true;
 }
 
 void CTwMgr::FreeCursors()
 {
-    [m_CursorArrow release];
-    [m_CursorMove release];
-    [m_CursorWE release];
-    [m_CursorNS release];
-    [m_CursorTopRight release];
-    [m_CursorTopLeft release];
-    [m_CursorBottomRight release];
-    [m_CursorBottomLeft release];
-    [m_CursorHelp release];
-    [m_CursorHand release];
-    [m_CursorCross release];
-    [m_CursorUpArrow release];
-    [m_CursorNo release];
-    [m_CursorIBeam release];
-    for( int i=0; i<NB_ROTO_CURSORS; ++i )
-        [m_RotoCursors[i] release]; 
-    [m_CursorCenter release];
-    [m_CursorPoint release];
     m_CursorsCreated = false;
 }
 
