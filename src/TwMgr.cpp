@@ -5112,7 +5112,7 @@ bool TwGetKeyCode(int *_Code, int *_Modif, const char *_String)
     bool Ok = true;
     *_Modif = TW_KMOD_NONE;
     *_Code = 0;
-    size_t Start = strlen(_String)-1;
+    int Start = (int)strlen(_String)-1;
     if( Start<0 )
         return false;
     while( Start>0 && _String[Start-1]!='+' )
@@ -5120,7 +5120,7 @@ bool TwGetKeyCode(int *_Code, int *_Modif, const char *_String)
     while( _String[Start]==' ' || _String[Start]=='\t' )
         ++Start;
     char *CodeStr = _strdup(_String+Start);
-    for( size_t i=strlen(CodeStr)-1; i>=0; ++i )
+    for( int i=(int)strlen(CodeStr)-1; i>=0; --i )
         if( CodeStr[i]==' ' || CodeStr[i]=='\t' )
             CodeStr[i] = '\0';
         else
@@ -6369,7 +6369,7 @@ CTwMgr::CCursor CTwMgr::PixmapCursor(int _CurIdx)
     for (y=0;y<32;y++) {
         for (x=0;x<32;x++) {
             //printf("%d",g_CurMask[_CurIdx][x+y*32]);
-            data[(x>>2) + y*8] |= (unsigned char)(g_CurPict[_CurIdx][x+y*32] << 2*(3-(x&3))+1); //turn whiteon
+            data[(x>>2) + y*8] |= (unsigned char)(g_CurPict[_CurIdx][x+y*32] << (2*(3-(x&3))+1)); //turn whiteon
             data[(x>>2) + y*8] |= (unsigned char)(g_CurMask[_CurIdx][x+y*32] << 2*(3-(x&3))); //turn the alpha all the way up
         }
         //printf("\n");
