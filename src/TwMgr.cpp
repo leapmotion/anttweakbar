@@ -6375,8 +6375,6 @@ CTwMgr::CCursor CTwMgr::PixmapCursor(int _CurIdx)
     [img addRepresentation: imgr];
     NSCursor *cur = [[NSCursor alloc] initWithImage: img hotSpot: NSMakePoint(g_CurHot[_CurIdx][0],g_CurHot[_CurIdx][1])];
 
-    [imgr autorelease];
-    [img autorelease];
     if (cur)
         return cur;
     else
@@ -6388,49 +6386,31 @@ void CTwMgr::CreateCursors()
     if (m_CursorsCreated)
         return;
     
-    m_CursorArrow        = [[NSCursor arrowCursor] retain];
-    m_CursorMove         = [[NSCursor crosshairCursor] retain];
-    m_CursorWE           = [[NSCursor resizeLeftRightCursor] retain];
-    m_CursorNS           = [[NSCursor resizeUpDownCursor] retain];
-    m_CursorTopRight     = [[NSCursor arrowCursor] retain]; //osx not have one
-    m_CursorTopLeft      = [[NSCursor arrowCursor] retain]; //osx not have one
-    m_CursorBottomRight  = [[NSCursor arrowCursor] retain]; //osx not have one
-    m_CursorBottomLeft   = [[NSCursor arrowCursor] retain]; //osx not have one
-    m_CursorHelp         = [[NSCursor arrowCursor] retain]; //osx not have one
-    m_CursorHand         = [[NSCursor pointingHandCursor] retain];
-    m_CursorCross        = [[NSCursor arrowCursor] retain];
-    m_CursorUpArrow      = [[NSCursor arrowCursor] retain];
-    m_CursorNo           = [[NSCursor arrowCursor] retain];
-    m_CursorIBeam        = [[NSCursor IBeamCursor] retain];
+    m_CursorArrow        = [NSCursor arrowCursor];
+    m_CursorMove         = [NSCursor crosshairCursor];
+    m_CursorWE           = [NSCursor resizeLeftRightCursor];
+    m_CursorNS           = [NSCursor resizeUpDownCursor];
+    m_CursorTopRight     = [NSCursor arrowCursor]; //osx not have one
+    m_CursorTopLeft      = [NSCursor arrowCursor]; //osx not have one
+    m_CursorBottomRight  = [NSCursor arrowCursor]; //osx not have one
+    m_CursorBottomLeft   = [NSCursor arrowCursor]; //osx not have one
+    m_CursorHelp         = [NSCursor arrowCursor]; //osx not have one
+    m_CursorHand         = [NSCursor pointingHandCursor];
+    m_CursorCross        = [NSCursor arrowCursor];
+    m_CursorUpArrow      = [NSCursor arrowCursor];
+    m_CursorNo           = [NSCursor arrowCursor];
+    m_CursorIBeam        = [NSCursor IBeamCursor];
     for (int i=0;i<NB_ROTO_CURSORS; i++)
     {
-        m_RotoCursors[i] = [PixmapCursor(i+2) retain];
+        m_RotoCursors[i] = PixmapCursor(i+2);
     }
-    m_CursorCenter  = [PixmapCursor(0) retain];
-    m_CursorPoint   = [PixmapCursor(1) retain];
+    m_CursorCenter  = PixmapCursor(0);
+    m_CursorPoint   = PixmapCursor(1);
     m_CursorsCreated = true;
 }
 
 void CTwMgr::FreeCursors()
 {
-    [m_CursorArrow release];
-    [m_CursorMove release];
-    [m_CursorWE release];
-    [m_CursorNS release];
-    [m_CursorTopRight release];
-    [m_CursorTopLeft release];
-    [m_CursorBottomRight release];
-    [m_CursorBottomLeft release];
-    [m_CursorHelp release];
-    [m_CursorHand release];
-    [m_CursorCross release];
-    [m_CursorUpArrow release];
-    [m_CursorNo release];
-    [m_CursorIBeam release];
-    for( int i=0; i<NB_ROTO_CURSORS; ++i )
-        [m_RotoCursors[i] release]; 
-    [m_CursorCenter release];
-    [m_CursorPoint release];
     m_CursorsCreated = false;
 }
 
